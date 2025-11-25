@@ -1,7 +1,19 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 import {
+  User,
   ValidateTokenResponse,
+  CreatePaymentPayload,
+  Order,
+  UserProfile,
+  Meal,
+  Plan,
+  Vendor,
+  Cart,
+  CartItem,
+  PersonDetails,
+  Menu,
+  MenuWithPopulatedMeals // Changed from PopulatedMenu
 } from "./types";
 
 
@@ -21,6 +33,7 @@ export async function apiRequest<T>(
       url: `${API_URL}${endpoint}`,
       method,
       headers,
+      // payloadSent: payload, // Removed debugging log
       body: method !== "GET" && method !== "DELETE" ? JSON.stringify(payload) : null,
     });
 
@@ -56,12 +69,11 @@ export async function apiRequest<T>(
       throw new Error(cleanMessage);
     }
 
-    console.log("✅ API Success:", data);
     return data as T;
   } catch (err: any) {
     console.error("🚨 apiRequest Catch:", err);
     if (err === "token not found") {
-      localStorage.removeItem("aharraa-u-token");
+      localStorage.removeItem("aharraa-u-token-admin");
       throw new Error("session expired Please log in again.");
     }
 
@@ -73,31 +85,4 @@ export async function validateToken(
   token: string
 ): Promise<ValidateTokenResponse> {
   return apiRequest<ValidateTokenResponse>("/auth/verify", "POST", { token });
-}
-
-export async function oauthLogin(
-  provider: string
-): Promise<{ message: string; url: string }> {
-  return apiRequest<{ message: string; url: string }>(
-    `/auth/oauth/${provider}`,
-    "GET",
-    null,
-    null
-  );
-}
-
-export async function forgotPassword(email: string): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>("/auth/forgot-password", "POST", { email });
-}
-
-export async function resetPassword(
-  newPassword: string, 
-  token: string
-): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>(
-    "/auth/reset-password", 
-    "POST", 
-    { newPassword },  // ✅ Only newPassword in body
-    token             // ✅ Token as 4th parameter (becomes Authorization header)
-  );
 }

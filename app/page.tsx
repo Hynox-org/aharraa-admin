@@ -29,7 +29,7 @@ export default function Home() {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
               <Link 
-                href="/login"
+                href="/dashboard"
                 className="inline-flex items-center justify-center px-8 py-4 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors shadow-lg hover:shadow-xl"
               >
                 Access Portal
