@@ -31,9 +31,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { id: '/', label: 'Dashboard', icon: HiHome },
     { id: 'orders', label: 'Orders', icon: HiShoppingBag },
     { id: 'users', label: 'Users', icon: HiUserGroup },
-    { id: 'customers', label: 'Customers', icon: HiUsers },
-    { id: 'analytics', label: 'Analytics', icon: HiChartBar },
-    { id: 'settings', label: 'Settings', icon: HiCog },
+    // { id: 'customers', label: 'Customers', icon: HiUsers },
+    // { id: 'analytics', label: 'Analytics', icon: HiChartBar },
+    // { id: 'settings', label: 'Settings', icon: HiCog },
   ];
 
   return (
@@ -134,7 +134,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             >
               <HiMenuAlt3 className="h-6 w-6 text-gray-600" />
             </button>
-            <h1 className="text-xl font-semibold text-black capitalize">{activeMenu}</h1>
           </div>
           <div className="flex items-center space-x-4">
             <div className="hidden md:block text-right">
