@@ -273,6 +273,7 @@ export interface OrderItem {
   personDetails?: PersonDetails[];
   startDate: string; // ISO date string
   endDate: string; // ISO date string
+  selectedMealTimes?: string[]; // Array of selected meal times (e.g., "Breakfast", "Lunch")
   skippedDates?: string[]; // Array of ISO date strings
   itemTotalPrice: number;
   vendor: string | Vendor; // Vendor ID reference
@@ -302,6 +303,7 @@ export interface Order {
   currency: string;
   orderDate: string; // ISO date string
   status: OrderStatus;
+  isConfirmationEmailSent?: boolean; // Add this field
   paymentSessionId?: string;
   paymentDetails?: PaymentDetails;
   paymentConfirmedAt?: string;
