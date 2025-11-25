@@ -281,7 +281,7 @@ export interface OrderItem {
 
 // Populated OrderItem (when references are populated)
 export interface PopulatedOrderItem extends Omit<OrderItem, 'menu' | 'plan' | 'vendor'> {
-  menu: { id: string; name?: string; coverImage?: string | null };
+  menu: { id: string; name?: string; description?: string; coverImage?: string | null }; // Added description
   plan: { id: string; name?: string };
   vendor: { id: string; name?: string };
 }

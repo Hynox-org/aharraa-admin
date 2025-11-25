@@ -267,6 +267,7 @@ const OrderDetailsPage = () => {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h4 className="font-semibold text-gray-900">{item.plan?.name || 'N/A'}</h4>
+                    {item.menu?.name && <p className="text-sm text-gray-700 mt-1">{item.menu.name}</p>}
                     <p className="text-sm text-gray-500 mt-1">Vendor: {item.vendor?.name || 'N/A'}</p>
                   </div>
                   <div className="text-right">
