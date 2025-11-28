@@ -8,7 +8,7 @@ import { PopulatedOrder } from '@/lib/types';
 import { HiEye, HiShoppingBag } from 'react-icons/hi';
 
 const OrdersPage = () => {
-  const { token } = useAuth();
+  const { token,user } = useAuth();
   const [orders, setOrders] = useState<PopulatedOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,10 @@ const OrdersPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiRequest<PopulatedOrder[]>("/api/admin/orders", "GET", null, token);
+        const endpoint = user?.role === 'vendor' 
+          ? `/api/vendor/orders`  // Vendor sees only their orders
+          : `/api/admin/orders`; // Admin sees all orders
+        const data = await apiRequest<PopulatedOrder[]>(endpoint, "GET", null, token);
         setOrders(data);
       } catch (err: any) {
         setError(err.message || "Failed to fetch orders.");

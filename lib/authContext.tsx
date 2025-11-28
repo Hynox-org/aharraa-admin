@@ -69,6 +69,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await validateToken(newToken);
       setUser(response.user);
+      console.log("Login successful:", response);
+      console.log("user stored:", user);
       setIsAuthenticated(true);
       setLoading(false); // Set loading to false before redirection
       if (returnUrl) {

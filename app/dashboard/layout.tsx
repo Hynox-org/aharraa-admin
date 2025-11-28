@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/lib/authContext'; // Import your auth context
 import { 
   HiHome, 
   HiShoppingBag, 
@@ -11,7 +12,9 @@ import {
   HiLogout,
   HiMenuAlt3,
   HiX,
-  HiUserGroup
+  HiUserGroup,
+  HiOfficeBuilding,
+  HiOutlineCollection
 } from 'react-icons/hi';
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
@@ -19,6 +22,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [activeMenu, setActiveMenu] = useState('dashboard');
+  const { user } = useAuth(); // Get user from auth context
 
   useEffect(() => {
     const path = pathname.split('/').pop();
@@ -27,14 +31,24 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     }
   }, [pathname]);
 
-  const menuItems = [
-    { id: '/', label: 'Dashboard', icon: HiHome },
-    { id: 'orders', label: 'Orders', icon: HiShoppingBag },
-    { id: 'users', label: 'Users', icon: HiUserGroup },
-    // { id: 'customers', label: 'Customers', icon: HiUsers },
-    // { id: 'analytics', label: 'Analytics', icon: HiChartBar },
-    // { id: 'settings', label: 'Settings', icon: HiCog },
-  ];
+  // Role-based menu items
+  const getMenuItems = () => {
+    if (!user?.role) return []; 
+    const role = user.role.toLowerCase();
+    console.log("User role:", role);
+    const allMenuItems = [
+      { id: '/', label: 'Dashboard', icon: HiHome , roles: ['admin', 'vendor'] },
+      { id: 'orders', label: 'Orders', icon: HiShoppingBag , roles: ['admin', 'vendor'] },
+      { id: 'users', label: 'Users', icon: HiUserGroup , roles: ['admin', 'vendor'] },
+      { id: 'vendors', label: 'Vendors', icon: HiOfficeBuilding , roles: ['admin'] },
+      { id: 'menus', label: 'Menus', icon: HiOutlineCollection , roles: ['admin', 'vendor']},
+      // { id: 'customers', label: 'Customers', icon: HiUsers },
+      // { id: 'analytics', label: 'Analytics', icon: HiChartBar },
+      // { id: 'settings', label: 'Settings', icon: HiCog },
+    ];
+    return allMenuItems.filter(item => item.roles.includes(role));
+  };
+    const menuItems = getMenuItems();
 
   return (
     <div className="flex h-screen bg-gray-100">
