@@ -11,6 +11,7 @@ const VendorCreatePage = () => {
   const { token } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
+    companyName: '',
     email: '',
     password: ''
   });
@@ -74,6 +75,21 @@ const VendorCreatePage = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+              Company Name
+            </label>
+            <input
+              type="text"
+              id="companyName"
+              name="companyName"
+              value={formData.companyName}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter vendor ID"
+            />
+          </div>
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
               Name
