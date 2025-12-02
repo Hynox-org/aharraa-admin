@@ -29,7 +29,7 @@ const VendorCreatePage = () => {
     setError(null);
 
     try {
-      const response = await apiRequest('/api/vendor/new', 'POST', formData, token);
+      const response = await apiRequest('/api/admin/vendor/new', 'POST', formData, token);
       
       if (response) {
         router.push('/dashboard/vendors'); // Navigate back to vendors list

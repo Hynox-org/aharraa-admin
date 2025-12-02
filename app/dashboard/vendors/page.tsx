@@ -24,7 +24,7 @@ const VendorsPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiRequest<Vendor[]>("/api/vendor/", "GET", null, token);
+        const data = await apiRequest<Vendor[]>("/api/admin/vendors", "GET", null, token);
         if(data === null || data === undefined){
           setVendors([]);
           console.warn("No vendors data received");

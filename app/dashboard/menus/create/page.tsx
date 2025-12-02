@@ -14,10 +14,10 @@ import {
 } from '@/lib/types';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 const MenuCreatePage = () => {
   const router = useRouter();
   const { token, user } = useAuth();
@@ -78,41 +78,43 @@ const MenuCreatePage = () => {
   }, [selectedTimes, menuBasics.dietPreference, step]);
 
   // Supabase Image Upload - IMMEDIATE on file select
-  const handleImageUpload = async (file: File, dayTimeKey: string) => {
-    if (!file) return;
+ const handleImageUpload = async (file: File, dayTimeKey: string) => {
+  if (!file) return;
 
-    setUploadLoading(prev => ({ ...prev, [dayTimeKey]: true }));
+  setUploadLoading(prev => ({ ...prev, [dayTimeKey]: true }));
 
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `meals/${dayTimeKey}-${Date.now()}.${fileExt}`;
-      
-      const { data, error } = await supabase.storage
-        .from('meal-images')
-        .upload(fileName, file, { upsert: true });
+  try {
+    const fileExt = file.name.split('.').pop();
+    const filePath = `meals/${dayTimeKey}-${Date.now()}.${fileExt}`;
+const { data: { session } } = await supabase.auth.getSession();
+console.log("Supabase Session Role:", session?.user || "No session (anon)");
+    const { data, error } = await supabase.storage
+      .from('menu-image')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+      });
+console.log('Supabase upload data:', data, 'error:', error);
+    if (error) throw error;
 
-      if (error) throw error;
+    const { data: urlData } = supabase.storage
+      .from('menu-image')
+      .getPublicUrl(filePath);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('meal-images')
-        .getPublicUrl(fileName);
+    setMealsData(prev => ({
+      ...prev,
+      [dayTimeKey]: {
+        ...prev[dayTimeKey],
+        image: urlData.publicUrl,
+      }
+    }));
 
-      setMealsData(prev => ({
-        ...prev,
-        [dayTimeKey]: {
-          ...prev[dayTimeKey],
-          image: publicUrl
-        }
-      }));
+  } catch (err: any) {
+    setError(`Image upload failed: ${err.message}`);
+  } finally {
+    setUploadLoading(prev => ({ ...prev, [dayTimeKey]: false }));
+  }
+};
 
-      console.log('✅ Image uploaded:', publicUrl);
-    } catch (err: any) {
-      console.error('❌ Image upload failed:', err);
-      setError(`Image upload failed for ${dayTimeKey}: ${err.message}`);
-    } finally {
-      setUploadLoading(prev => ({ ...prev, [dayTimeKey]: false }));
-    }
-  };
 
   // Add subproduct
   const addSubProduct = (dayTimeKey: string) => {
@@ -174,7 +176,7 @@ const MenuCreatePage = () => {
           vendorId: user.id, // ✅ FIXED: Current user's ID
         };
 
-        const response = await apiRequest('/api/meal', 'POST', mealPayload, token);
+        const response = await apiRequest('/api/admin/meals', 'POST', mealPayload, token);
         if (response?._id) {
           newCreatedMeals.push({ _id: response._id, name: mealData.name });
         }
@@ -223,7 +225,7 @@ const MenuCreatePage = () => {
         vendor: user.id, // ✅ FIXED: Current user's ID
       };
 
-      const response = await apiRequest('/api/menu', 'POST', menuPayload, token);
+      const response = await apiRequest('/api/admin/menus', 'POST', menuPayload, token);
       if (response) {
         router.push('/dashboard/menus');
       }
@@ -615,7 +617,7 @@ const MenuCreatePage = () => {
           <div className="bg-white rounded-2xl border shadow-sm p-8 max-w-2xl">
             {/* Review content */}
             <div className="flex gap-4">
-              <button onClick={() => setStep(3)} className="px-8 py-4 border rounded-xl hover:bg-gray-50 flex-1">Edit Meals</button>
+              <button onClick={() => setStep(3)} className="px-8 py-4  text-gray-800 border rounded-xl hover:bg-gray-50 flex-1">Edit Meals</button>
               <button
                 onClick={submitMenu}
                 disabled={loading}

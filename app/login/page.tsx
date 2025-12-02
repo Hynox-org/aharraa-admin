@@ -22,7 +22,7 @@ const LoginPage = () => {
 
     try {
       const data = await apiRequest<{ message: string; accessToken: string; role: string }>(
-        '/api/admin/login',
+        '/auth/login',
         'POST',
         { email, password }
       );

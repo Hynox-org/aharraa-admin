@@ -24,7 +24,8 @@ const MenusPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiRequest<MenuWithPopulatedMeals[]>("/api/menu/", "GET", null, token);
+        const data = await apiRequest<MenuWithPopulatedMeals[]>("/api/admin/menus", "GET", null, token);
+        console.log("Menus data fetched:", data);
         if (data === null || data === undefined) {
           setMenus([]);
         } else {
@@ -99,43 +100,42 @@ const MenusPage = () => {
           </button>
         </div>
       </div>
+{menus.length > 0 ? (
+  categories.map((category) => (
+    <div key={category} className="bg-white rounded-lg border border-gray-200 p-6">
+      <h2 className="text-xl font-semibold mb-4  text-gray-500 capitalize">{category}</h2>
+      <div className="flex overflow-x-auto space-x-4 pb-4 scrollbar-thin scrollbar-thumb-gray-300">
+        {days.map((day) => {
+          const items = getMenuItemsByCategoryAndDay(category, day);
+          return (
+            <div key={day} className="min-w-[220px] flex-shrink-0 p-4 bg-gray-50 rounded-lg border">
+              <div className="font-semibold text-gray-800 mb-3">{day}</div>
+              {items.length > 0 ? (
+                items.map((item) => (
+                  <div key={item.meal._id} className="mb-2 p-2 bg-white rounded text-sm">
+                    <div className="font-medium text-gray-600">{item.meal.name}</div>
+                    <div className="text-gray-500 text-xs">₹{item.meal.price}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-gray-400 text-sm text-center py-4">No {category.toLowerCase()}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ))
+) : (
+  <div className="bg-white rounded-lg border border-gray-200 p-12">
+    <div className="text-center">
+      <HiDocumentText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+      <p className="text-gray-500 font-medium">No menus found.</p>
+      <p className="text-sm text-gray-400 mt-2">Click "Create" to add your first menu</p>
+    </div>
+  </div>
+)}
 
-      {/* Horizontal Scroll Sections */}
-      {categories.map((category) => (
-        <div key={category} className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold mb-4  text-gray-500 capitalize">{category}</h2>
-          <div className="flex overflow-x-auto space-x-4 pb-4 scrollbar-thin scrollbar-thumb-gray-300">
-            {days.map((day) => {
-              const items = getMenuItemsByCategoryAndDay(category, day);
-              return (
-                <div key={day} className="min-w-[220px] flex-shrink-0 p-4 bg-gray-50 rounded-lg border">
-                  <div className="font-semibold text-gray-800 mb-3">{day}</div>
-                  {items.length > 0 ? (
-                    items.map((item) => (
-                      <div key={item.meal._id} className="mb-2 p-2 bg-white rounded text-sm">
-                        <div className="font-medium text-gray-600">{item.meal.name}</div>
-                        <div className="text-gray-500 text-xs">₹{item.meal.price}</div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-gray-400 text-sm text-center py-4">No {category.toLowerCase()}</div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-
-      {menus.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12">
-          <div className="text-center">
-            <HiDocumentText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium">No menus found.</p>
-            <p className="text-sm text-gray-400 mt-2">Click "Create" to add your first menu</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
