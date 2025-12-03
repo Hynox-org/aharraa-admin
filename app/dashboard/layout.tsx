@@ -22,7 +22,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [activeMenu, setActiveMenu] = useState('dashboard');
-  const { user } = useAuth(); // Get user from auth context
+  const { user , logout } = useAuth(); // Get user from auth context
 
   useEffect(() => {
     const path = pathname.split('/').pop();
@@ -48,7 +48,11 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     ];
     return allMenuItems.filter(item => item.roles.includes(role));
   };
-    const menuItems = getMenuItems();
+  const menuItems = getMenuItems();
+  const handleLogout = () => {
+    logout();
+    setSidebarOpen(false); // Close sidebar on logout
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -91,7 +95,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
           {/* Logout */}
           <div className="p-3 border-t border-gray-200">
-            <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md">
+            <button onClick={handleLogout} className="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md">
               <HiLogout className="h-5 w-5 mr-3" />
               Logout
             </button>

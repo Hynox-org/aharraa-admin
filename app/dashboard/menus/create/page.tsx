@@ -5,7 +5,7 @@ import { apiRequest } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import Link from 'next/link';
 import { HiArrowLeft, HiPlus, HiTrash, HiCheck, HiCamera } from 'react-icons/hi2';
-import { 
+import {
   DietPreference, 
   MealCategory, 
   DayOfWeek, 
@@ -86,14 +86,14 @@ const MenuCreatePage = () => {
   try {
     const fileExt = file.name.split('.').pop();
     const filePath = `meals/${dayTimeKey}-${Date.now()}.${fileExt}`;
-const { data: { session } } = await supabase.auth.getSession();
-console.log("Supabase Session Role:", session?.user || "No session (anon)");
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log("Supabase Session Role:", session?.user || "No session (anon)");
     const { data, error } = await supabase.storage
       .from('menu-image')
       .upload(filePath, file, {
         cacheControl: '3600',
       });
-console.log('Supabase upload data:', data, 'error:', error);
+    console.log('Supabase upload data:', data, 'error:', error);
     if (error) throw error;
 
     const { data: urlData } = supabase.storage
@@ -114,7 +114,6 @@ console.log('Supabase upload data:', data, 'error:', error);
     setUploadLoading(prev => ({ ...prev, [dayTimeKey]: false }));
   }
 };
-
 
   // Add subproduct
   const addSubProduct = (dayTimeKey: string) => {
@@ -149,92 +148,121 @@ console.log('Supabase upload data:', data, 'error:', error);
     }));
   };
 
-  // ✅ FIXED: Create all meals with vendorId from user
-  const createAllMeals = async () => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      return;
-    }
+const createAllMeals = async () => {
+  if (!user?.id) {
+    setError('User not authenticated');
+    return;
+  }
 
-    setLoading(true);
-    setError(null);
-    const newCreatedMeals: { _id: string; name: string }[] = [];
+  setLoading(true);
+  setError(null);
+  const newCreatedMeals: { _id: string; name: string }[] = [];
 
-    try {
-      for (const [dayTimeKey, mealData] of Object.entries(mealsData)) {
-        if (!mealData.name.trim() || !mealData.image.trim()) continue;
+  try {
+    for (const [dayTimeKey, mealData] of Object.entries(mealsData)) {
+      if (!mealData.name.trim() || !mealData.image.trim()) continue;
 
-        const mealPayload: Omit<Meal, '_id' | 'createdAt' | 'updatedAt' | '__v'> = {
-          name: mealData.name,
-          description: mealData.description,
-          dietPreference: mealData.dietPreference,
-          category: mealData.category,
-          subProducts: mealData.subProducts.filter(p => p.trim()),
-          nutritionalDetails: mealData.nutritionalDetails,
-          price: mealData.price,
-          image: mealData.image,
-          vendorId: user.id, // ✅ FIXED: Current user's ID
-        };
-
-        const response = await apiRequest('/api/admin/meals', 'POST', mealPayload, token);
-        if (response?._id) {
-          newCreatedMeals.push({ _id: response._id, name: mealData.name });
-        }
-      }
-
-      setCreatedMeals(newCreatedMeals);
-      setStep(4);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create meals');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ✅ FIXED: Submit menu with vendor from user
-  const submitMenu = async () => {
-    if (createdMeals.length === 0 || !user?.id) {
-      setError('No meals created or user not authenticated');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const menuItems = Object.keys(mealsData).map(dayTimeKey => {
-        const [day, category] = dayTimeKey.split('-') as [DayOfWeek, MealCategory];
-        const mealData = mealsData[dayTimeKey];
-        const createdMeal = createdMeals.find(m => m.name === mealData.name);
-        
-        if (!createdMeal) return null;
-
-        return {
-          day,
-          category,
-          meal: createdMeal._id
-        };
-      }).filter((item): item is { day: DayOfWeek; category: MealCategory; meal: string } => item !== null);
-
-      const menuPayload = {
-        name: menuBasics.name,
-        description: menuBasics.description,
-        perDayPrice: 0,
-        availableMealTimes: selectedTimes,
-        menuItems,
-        vendor: user.id, // ✅ FIXED: Current user's ID
+      const mealPayload: Omit<Meal, '_id' | 'createdAt' | 'updatedAt' | '__v'> = {
+        name: mealData.name,
+        description: mealData.description || '', // ✅ Ensure description exists
+        dietPreference: mealData.dietPreference,
+        category: mealData.category,
+        subProducts: mealData.subProducts.filter(p => p.trim()),
+        nutritionalDetails: mealData.nutritionalDetails,
+        price: mealData.price,
+        image: mealData.image,
+        vendorId: user.id, // ✅ Matches schema
       };
 
-      const response = await apiRequest('/api/admin/menus', 'POST', menuPayload, token);
-      if (response) {
-        router.push('/dashboard/menus');
+      const response = await apiRequest('/api/admin/meals', 'POST', mealPayload, token);
+      if (response?._id) {
+        newCreatedMeals.push({ _id: response._id, name: mealData.name });
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to create menu');
-    } finally {
-      setLoading(false);
     }
-  };
+
+    setCreatedMeals(newCreatedMeals);
+    setStep(4);
+  } catch (err: any) {
+    setError(err.message || 'Failed to create meals');
+  } finally {
+    setLoading(false);
+  }
+};
+
+const submitMenu = async () => {
+  if (createdMeals.length === 0 || !user?.id) {
+    setError('No meals created or user not authenticated');
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    const menuItems = Object.keys(mealsData).map(dayTimeKey => {
+      const [day, category] = dayTimeKey.split('-') as [DayOfWeek, MealCategory];
+      const mealData = mealsData[dayTimeKey];
+      const createdMeal = createdMeals.find(m => m.name === mealData.name);
+      
+      if (!createdMeal) return null;
+
+      return {
+        day,
+        category,
+        meal: createdMeal._id 
+      };
+    }).filter((item): item is { day: DayOfWeek; category: MealCategory; meal: string } => item !== null);
+    
+    // ✅ Calculate daily prices by category
+    const dailyPrices: Record<MealCategory, number> = {
+      Breakfast: 0,
+      Lunch: 0,
+      Dinner: 0
+    };
+
+    // ✅ Group meals by category and calculate highest price per category
+    menuItems.forEach(item => {
+      const mealData = Object.values(mealsData).find(m => 
+        m.category === item.category && 
+        createdMeals.find(cm => cm._id === item.meal)?.name === m.name
+      );
+      if (mealData) {
+        dailyPrices[item.category] = Math.max(dailyPrices[item.category], mealData.price);
+      }
+    });
+
+    // ✅ Calculate perDayPrice as SUM of all meal categories
+    const perDayPrice = dailyPrices.Breakfast + dailyPrices.Lunch + dailyPrices.Dinner;
+
+    console.log('💰 Daily Prices:', dailyPrices);
+    console.log('💰 Total perDayPrice:', perDayPrice);
+
+    const menuPayload = {
+      name: menuBasics.name,
+      description: menuBasics.description || '',
+      perDayPrice, // ✅ Dynamic sum of all meals
+      availableMealTimes: selectedTimes,
+      price: {
+        breakfast: dailyPrices.Breakfast,
+        lunch: dailyPrices.Lunch,
+        dinner: dailyPrices.Dinner
+      },
+      menuItems, 
+      vendor: user.id, 
+    };
+
+    console.log('📦 Final menuPayload:', menuPayload);
+
+    const response = await apiRequest('/api/admin/menus', 'POST', menuPayload, token);
+    if (response) {
+      router.push('/dashboard/menus');
+    }
+  } catch (err: any) {
+    setError(err.message || 'Failed to create menu');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">

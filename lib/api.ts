@@ -19,7 +19,7 @@ import {
 
 export async function apiRequest<T>(
   endpoint: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
   body: Record<string, unknown> | null = null,
   token: string | null = null
 ): Promise<T> {
