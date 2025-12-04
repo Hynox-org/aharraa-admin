@@ -174,7 +174,7 @@ const createAllMeals = async () => {
         vendorId: user.id, // ✅ Matches schema
       };
 
-      const response = await apiRequest('/api/admin/meals', 'POST', mealPayload, token);
+      const response : any = await apiRequest('/api/admin/meals', 'POST', mealPayload, token);
       if (response?._id) {
         newCreatedMeals.push({ _id: response._id, name: mealData.name });
       }
