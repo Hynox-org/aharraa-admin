@@ -23,14 +23,22 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const [activeMenu, setActiveMenu] = useState('dashboard');
   const { user , logout } = useAuth(); // Get user from auth context
-
-  useEffect(() => {
+  const [userName, setUserName] = useState("User");
+  const [userEmail, setUserEmail] = useState("");
+ useEffect(() => {
     const path = pathname.split('/').pop();
     if (path) {
       setActiveMenu(path);
     }
-  }, [pathname]);
-
+    
+    if (user?.role === "admin") {
+      setUserName("Admin User");
+      setUserEmail(user.email || "");
+    } else if (user?.role === "vendor") {
+      setUserName("Vendor User");
+      setUserEmail(user.email || "");
+    }
+  }, [pathname, user?.role, user?.email]);
   // Role-based menu items
   const getMenuItems = () => {
     if (!user?.role) return []; 
@@ -155,9 +163,9 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           </div>
           <div className="flex items-center space-x-4">
             <div className="hidden md:block text-right">
-              <p className="text-sm font-medium text-gray-900">Admin User</p>
-              <p className="text-xs text-gray-500">info.aharraa@gmail.com</p>
-            </div>
+              <p className="text-sm font-medium text-gray-900">{userName}</p>
+              <p className="text-xs text-gray-500">{userEmail}</p>
+            </div>  
             <div className="h-9 w-9 rounded-full bg-[#3CB371] flex items-center justify-center text-white font-medium text-sm">
               A
             </div>

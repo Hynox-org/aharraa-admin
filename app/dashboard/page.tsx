@@ -1,5 +1,8 @@
 "use client";
 
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/authContext';
+import { apiRequest } from '@/lib/api';
 import { 
   HiShoppingBag, 
   HiUsers, 
@@ -8,55 +11,57 @@ import {
   HiTrendingDown,
   HiClock,
 } from 'react-icons/hi';
+import { IconType } from 'react-icons';
 
-// Sample Data
-const stats = [
-  { 
-    title: 'Total Orders', 
-    value: '1,234', 
-    change: '+12.5%', 
-    trend: 'up',
-    icon: HiShoppingBag,
-  },
-  { 
-    title: 'Active Customers', 
-    value: '856', 
-    change: '+8.2%', 
-    trend: 'up',
-    icon: HiUsers,
-  },
-  { 
-    title: 'Revenue Today', 
-    value: '₹45,680', 
-    change: '+15.3%', 
-    trend: 'up',
-    icon: HiChartBar,
-  },
-  { 
-    title: 'Pending Orders', 
-    value: '23', 
-    change: '-5.1%', 
-    trend: 'down',
-    icon: HiClock,
-  },
-];
+interface RecentOrder {
+  id: string;
+  customer: string;
+  items: string;
+  amount: string;
+  status: string;
+  time: string;
+}
 
-const recentOrders = [
-  { id: '#ORD-1234', customer: 'Priya Sharma', items: 'Veg Thali, Roti (5)', amount: '₹380', status: 'Delivered', time: '10 mins ago' },
-  { id: '#ORD-1233', customer: 'Rajesh Kumar', items: 'Paneer Butter Masala', amount: '₹250', status: 'Preparing', time: '15 mins ago' },
-  { id: '#ORD-1232', customer: 'Anjali Patel', items: 'Dal Makhani, Rice', amount: '₹320', status: 'On the Way', time: '25 mins ago' },
-  { id: '#ORD-1231', customer: 'Vikram Singh', items: 'Family Pack - 4 Meals', amount: '₹890', status: 'Delivered', time: '1 hour ago' },
-  { id: '#ORD-1230', customer: 'Meera Desai', items: 'Aloo Gobi, Chapati (4)', amount: '₹280', status: 'Delivered', time: '2 hours ago' },
-];
+interface PopularMeal {
+  name: string;
+  orders: number;
+  revenue: string;
+}
 
-const popularMeals = [
-  { name: 'Veg Thali', orders: 156, revenue: '₹23,400' },
-  { name: 'Paneer Butter Masala', orders: 134, revenue: '₹20,100' },
-  { name: 'Dal Makhani Combo', orders: 98, revenue: '₹15,680' },
-  { name: 'Family Pack', orders: 67, revenue: '₹19,980' },
-];
+interface StatsItem {
+  title: string;
+  value: string;
+  change: string;
+  trend: 'up' | 'down';
+  icon: IconType;
+}
+
+interface AnalyticsData {
+  totalOrders: number;
+  pendingOrders: number;
+  activeCustomers: number;
+  revenueToday: number;
+  recentOrders: {
+    id: string;
+    customer: string;
+    items: string;
+    amount: number;
+    status: string;
+    createdAt: string;
+  }[];
+  popularMenus: {
+    name: string;
+    orders: number;
+    revenue: number;
+  }[];
+}
 
 const DashboardPage = () => {
+  const [stats, setStats] = useState<StatsItem[]>([]);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+  const [popularMeals, setPopularMeals] = useState<PopularMeal[]>([]);
+  const { token } = useAuth();
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'Delivered': return 'bg-green-100 text-green-800';
@@ -65,6 +70,75 @@ const DashboardPage = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const data = await apiRequest<AnalyticsData>("/api/admin/analytics", "GET", null, token);
+
+        // Update stats with change & trend placeholders (adjust as needed)
+        setStats([
+          {
+            title: 'Total Orders',
+            value: data.totalOrders.toLocaleString(),
+            change: '+' + data.totalOrders/100 + '%',
+            trend: 'up',
+            icon: HiShoppingBag,
+          },
+          {
+            title: 'Active Customers',
+            value: data.activeCustomers.toLocaleString(),
+            change: '+'+ data.activeCustomers/100 + '%',
+            trend: 'up',
+            icon: HiUsers,
+          },
+          {
+            title: 'Revenue Today',
+            value: `₹${data.revenueToday.toLocaleString()}`,
+            change: '+' + data.revenueToday/100 + '%',
+            trend: 'up',
+            icon: HiChartBar,
+          },
+          {
+            title: 'Pending Orders',
+            value: data.pendingOrders.toLocaleString(),
+            change: '-' + data.pendingOrders/100+ '%',
+            trend: 'down',
+            icon: HiClock,
+          },
+        ]);
+
+        // Map recent orders to required format with fallback data/time
+        setRecentOrders(
+          data.recentOrders.map((order) => ({
+            id: order.id,
+            customer: order.customer || 'Unknown',
+            items: 'Items', // You may adapt if items list is available in API
+            amount: `₹${(order.amount ?? 0).toLocaleString()}`,
+            status: order.status,
+            time: 'Recent', // Optionally calculate relative time from createdAt
+          }))
+        );
+
+        // Map popular menus to required format
+        setPopularMeals(
+          data.popularMenus.map((meal) => ({
+            name: meal.name,
+            orders: meal.orders,
+            revenue: `₹${(meal.revenue ?? 0).toLocaleString()}`,
+          }))
+        );
+      } catch(err) {
+        console.error('Failed to fetch analytics', err);
+        // Optionally add error handling UI here
+      }
+    };
+
+    if (token) {
+      fetchAnalytics();
+    }
+  }, [token]);
+
 
   return (
     <div className="space-y-6">
@@ -91,7 +165,6 @@ const DashboardPage = () => {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
         {/* Recent Orders Table */}
         <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -139,7 +212,7 @@ const DashboardPage = () => {
                   <tr key={index}>
                     <td className="py-3">
                       <p className="font-medium text-gray-900">{meal.name}</p>
-                      <p className="text-sm text-gray-500">{meal.orders} orders</p>
+                      {/* <p className="text-sm text-gray-500">{meal.orders} orders</p> */}
                     </td>
                     <td className="py-3 text-right">
                       <p className="font-semibold text-[#3CB371]">{meal.revenue}</p>

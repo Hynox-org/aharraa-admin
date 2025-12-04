@@ -118,15 +118,16 @@ const MenusPage = () => {
           <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200">
             <HiDocumentText className="h-5 w-5 text-gray-500" />
             <span className="text-sm font-medium text-gray-700">
-              Total: {menus.length} | Active: {availableCategories.length} meal types
+              {/* Total: {menus.length} | Active: {availableCategories.length} meal types */}
+              Total: {menus.length}
             </span>
           </div>
-          <button
+          {/* <button
             onClick={() => router.push('/dashboard/menus/create')}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           >
             Create
-          </button>
+          </button> */}
         </div>
       </div>
 
