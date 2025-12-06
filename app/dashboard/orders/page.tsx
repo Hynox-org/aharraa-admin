@@ -269,7 +269,7 @@ const OrdersPage = () => {
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Order ID</th>
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                  {/* <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th> */}
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Items</th>
                   <th className="px-4 lg:px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
                 </tr>
@@ -291,7 +291,7 @@ const OrdersPage = () => {
                     <td className="px-4 lg:px-6 py-4 text-xs sm:text-sm font-bold text-gray-900">
                       ₹{order.totalAmount?.toLocaleString() || '0'}
                     </td>
-                    <td className="px-4 lg:px-6 py-4 relative" onClick={(e) => e.stopPropagation()}>
+                    {/* <td className="px-4 lg:px-6 py-4 relative" onClick={(e) => e.stopPropagation()}>
                       <div className="relative inline-block">
                         <button
                           onClick={(e) => changeableStatuses.length > 0 && toggleStatusDropdown(order._id, e)}
@@ -334,7 +334,7 @@ const OrdersPage = () => {
                           </div>
                         )}
                       </div>
-                    </td>
+                    </td> */}
                     <td className="px-4 lg:px-6 py-4 text-xs sm:text-sm text-gray-600">
                       {order.items?.length || 0} items
                     </td>

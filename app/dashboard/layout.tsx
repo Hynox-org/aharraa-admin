@@ -61,6 +61,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     const allMenuItems = [
       { id: '/', label: 'Dashboard', icon: HiHome, roles: ['admin', 'vendor'] },
       { id: 'orders', label: 'Orders', icon: HiShoppingBag, roles: ['admin', 'vendor'] },
+      { id: 'orderItems', label: 'Order Items', icon: HiShoppingBag, roles: ['admin', 'vendor'] },
       { id: 'users', label: 'Users', icon: HiUserGroup, roles: ['admin'] },
       { id: 'vendors', label: 'Vendors', icon: HiOfficeBuilding, roles: ['admin'] },
       { id: 'menus', label: 'Menus', icon: HiOutlineCollection, roles: ['admin', 'vendor']},
