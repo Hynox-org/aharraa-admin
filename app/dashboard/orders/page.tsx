@@ -291,7 +291,7 @@ const OrdersPage = () => {
                     <td className="px-4 lg:px-6 py-4 text-xs sm:text-sm font-bold text-gray-900">
                       ₹{order.totalAmount?.toLocaleString() || '0'}
                     </td>
-                    {/* <td className="px-4 lg:px-6 py-4 relative" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 lg:px-6 py-4 relative" onClick={(e) => e.stopPropagation()}>
                       <div className="relative inline-block">
                         <button
                           onClick={(e) => changeableStatuses.length > 0 && toggleStatusDropdown(order._id, e)}
@@ -334,7 +334,7 @@ const OrdersPage = () => {
                           </div>
                         )}
                       </div>
-                    </td> */}
+                    </td>
                     <td className="px-4 lg:px-6 py-4 text-xs sm:text-sm text-gray-600">
                       {order.items?.length || 0} items
                     </td>
@@ -366,7 +366,7 @@ const OrdersPage = () => {
                   </div>
                   <div className="relative" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={(e) => changeableStatuses.length > 0 && toggleStatusDropdown(order._id, e)}
+                      // onClick={(e) => changeableStatuses.length > 0 && toggleStatusDropdown(order._id, e)}
                       disabled={updatingId === order._id}
                       className={`
                         flex items-center gap-1 px-2 py-1 text-[10px] font-semibold rounded-full border

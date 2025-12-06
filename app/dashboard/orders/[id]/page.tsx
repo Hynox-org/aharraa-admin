@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
-import { PopulatedOrder } from '@/lib/types';
+import { PopulatedOrderWithRefunds } from '@/lib/types';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   HiArrowLeft, 
@@ -17,17 +17,46 @@ import {
   HiRefresh,
   HiX,
   HiCheckCircle,
-  HiPhone
+  HiPhone,
+  HiCurrencyRupee
 } from 'react-icons/hi';
+import { toast } from 'sonner';
+
+type RefundPreview = {
+  orderId: string;
+  suggestedRefundAmount: number;
+  consumedAmount: number;
+  consumedMealsCount: number;
+  totalAmount: number;
+  currency: string;
+  canFullRefund: boolean;
+};
 
 const OrderDetailsPage = () => {
   const { id } = useParams();
   const router = useRouter();
   const { token } = useAuth();
-  const [order, setOrder] = useState<PopulatedOrder | null>(null);
+  const [order, setOrder] = useState<PopulatedOrderWithRefunds  | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Refund states
+  const [refundPreview, setRefundPreview] = useState<RefundPreview | null>(null);
+  const [refundAmount, setRefundAmount] = useState<string>('');
+  const [isRefundLoading, setIsRefundLoading] = useState(false);
+  const [refundError, setRefundError] = useState<string | null>(null);
+  const [refundSuccess, setRefundSuccess] = useState<string | null>(null);
+  const [refundNote, setRefundNote] = useState<string>('');
+  const [showRefundPanel, setShowRefundPanel] = useState(false);
+  const canShowRefundButton = () => {
+    return order?.status === 'cancelled';
+  };
+   const getActiveRefundCount = () => {
+    if (!order?.refunds) return 0;
+    return order.refunds.filter(r => 
+      ['PENDING', 'SUCCESS', 'ONHOLD'].includes(r.status)
+    ).length;
+  };
   const fetchOrderDetails = async () => {
     if (!token) {
       setLoading(false);
@@ -43,15 +72,93 @@ const OrderDetailsPage = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiRequest<PopulatedOrder>(`/api/admin/orders/${id}`, "GET", null, token);
+      const data = await apiRequest<PopulatedOrderWithRefunds >(`/api/admin/orders/${id}`, "GET", null, token);
       setOrder(data);
+      
+      // Reset refund states when order changes
+      if (data.refunds && data.refunds.length > 0) {
+        setRefundPreview(null);
+        setRefundAmount('');
+        setShowRefundPanel(false);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to fetch order details.");
       console.error("Failed to fetch order details:", err);
     } finally {
       setLoading(false);
-    }
-  };
+  }
+};
+const fetchRefundPreview = async () => {
+  if (!token || !id) return;
+  try {
+    setIsRefundLoading(true);
+    setRefundError(null);
+    setRefundSuccess(null);
+
+    const data = await apiRequest<RefundPreview>(
+      `/api/admin/orders/${id}/refund/calculate`,  // ✅ NEW
+      'GET',
+      null,
+      token
+    );
+
+    setRefundPreview(data);
+    setRefundAmount(data.suggestedRefundAmount.toFixed(2));
+    setShowRefundPanel(true);
+  } catch (err: any) {
+    console.error('Failed to fetch refund preview', err);
+    toast('Error: ' + (err.message || 'Failed to calculate refund'));
+    setRefundError(err.message || 'Failed to fetch refund preview');
+    setShowRefundPanel(false);
+  } finally {
+    setIsRefundLoading(false);
+  }
+};
+
+// Process refund
+const handleProceedRefund = async () => {
+  if (!token || !id) return;
+
+  const numericAmount = parseFloat(refundAmount);
+  if (!numericAmount || numericAmount <= 0) {
+    setRefundError('Refund amount must be greater than zero');
+    return;
+  }
+
+  try {
+    setIsRefundLoading(true);
+    setRefundError(null);
+    setRefundSuccess(null);
+
+    const body = {
+      amount: numericAmount,
+      note: refundNote,
+    };
+
+    const data = await apiRequest<{
+      message: string;
+      refund: any;
+    }>(
+      `/api/admin/orders/${id}/refund/process`,  // ✅ NEW
+      'POST', 
+      body, 
+      token
+    );
+setTimeout(async () => {
+    setRefundSuccess(data.message || 'Refund initiated successfully');
+    setRefundPreview(null);
+    setRefundAmount('');
+    setRefundNote('');
+    await fetchOrderDetails();
+}, 5000);
+  } catch (err: any) {
+    console.error('Failed to create refund', err);
+    toast('Error: ' + (err.message || 'Failed to create refund'));
+    setRefundError(err.message || 'Failed to create refund');
+  } finally {
+    setIsRefundLoading(false);
+  }
+};
 
   useEffect(() => {
     if (id) {
@@ -99,7 +206,24 @@ const OrderDetailsPage = () => {
     });
   };
 
-  // Loading State
+  const handleCancelRefund = async (refund: any) => {
+    if (confirm(`Cancel refund ${refund.refundId.slice(-8)}?\nAmount: ₹${refund.amount}`)) {
+      try {
+        setIsRefundLoading(true);
+        await apiRequest(`/api/admin/orders/${id}/refund/${refund.refundId}/cancel`, 
+          'POST', 
+          { remarks: `Admin cancelled via UI` }, 
+          token
+        );
+        toast('Refund cancelled successfully!');
+        await fetchOrderDetails(); // Refresh
+      } catch (err: any) {
+        toast('Cancel failed: ' + (err.message || 'Unknown error'));
+      } finally {
+        setIsRefundLoading(false);
+      }
+    }
+  };
   if (loading) {
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -169,6 +293,8 @@ const OrderDetailsPage = () => {
     );
   }
 
+  const hasRefunds = order.refunds && order.refunds.length > 0;
+  const activeRefundCount = getActiveRefundCount();
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
@@ -190,6 +316,32 @@ const OrderDetailsPage = () => {
           <span className={`px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm font-semibold rounded-full border capitalize ${getStatusColor(order.status)}`}>
             {order.status}
           </span>
+          
+          {/* Refund Button - Only for cancelled orders without existing refunds */}
+         {canShowRefundButton() && (
+            <button
+              onClick={fetchRefundPreview}
+              className="px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg border-2 border-red-300 text-red-700 bg-red-50 hover:bg-red-100 hover:border-red-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isRefundLoading}
+            >
+              {isRefundLoading ? (
+                <span className="flex items-center gap-1">
+                  <div className="w-3 h-3 border-2 border-red-300 border-t-transparent rounded-full animate-spin"></div>
+                  Calculating...
+                </span>
+              ) : (
+                'Refund'
+              )}
+            </button>
+          )}
+          
+          {/* ✅ ACTIVE REFUND BADGE - Shows ONLY when there ARE active refunds */}
+          {activeRefundCount > 0 && (
+            <span className="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full font-medium">
+              {activeRefundCount} Active
+            </span>
+          )}
+
           <button
             onClick={fetchOrderDetails}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -317,6 +469,175 @@ const OrderDetailsPage = () => {
         </div>
       )}
 
+      {/* Refund Panel - Shows after clicking Refund button */}
+      {showRefundPanel && refundPreview && (
+        <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg sm:rounded-xl border-2 border-red-200 p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                <HiCurrencyRupee className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-red-900">Refund Processing</h3>
+                {refundPreview.canFullRefund ? (
+                  <p className="text-sm text-red-700">No meals consumed - Full refund eligible</p>
+                ) : (
+                  <p className="text-sm text-red-700">
+                    {refundPreview.consumedMealsCount} meal{refundPreview.consumedMealsCount !== 1 ? 's' : ''} consumed (₹{refundPreview.consumedAmount.toLocaleString()})
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowRefundPanel(false);
+                setRefundPreview(null);
+                setRefundAmount('');
+                setRefundNote('');
+              }}
+              className="text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <HiX className="w-5 h-5" />
+            </button>
+          </div>
+
+          {refundError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{refundError}</p>
+            </div>
+          )}
+
+          {refundSuccess && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 font-medium">{refundSuccess}</p>
+            </div>
+          )}
+
+          {!refundSuccess && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Refund Amount */}
+              <div>
+                <label className="block text-sm font-semibold text-red-900 mb-2">
+                  Refund Amount <span className="text-xs text-red-600">(editable)</span>
+                </label>
+                <div className="relative">
+                  <HiCurrencyRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="number"
+                    min="0"
+                    max={refundPreview.totalAmount}
+                    step="0.01"
+                    value={refundAmount}
+                    onChange={(e) => setRefundAmount(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border-2 border-red-300 rounded-xl text-lg font-bold text-red-900 focus:border-red-500 focus:ring-2 focus:ring-red-200 focus:outline-none transition-all"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-600">
+                  Total: ₹{refundPreview.totalAmount.toLocaleString()} | 
+                  Suggested: ₹{refundPreview.suggestedRefundAmount.toLocaleString()}
+                </p>
+              </div>
+
+              {/* Refund Note */}
+              <div>
+                <label className="block text-sm font-semibold text-red-900 mb-2">
+                  Reason (optional)
+                </label>
+                <textarea
+                  value={refundNote}
+                  onChange={(e) => setRefundNote(e.target.value)}
+                  rows={1}
+                  className="w-full border-2 border-red-300 text-gray-700 rounded-xl px-4 py-3 text-sm resize-vertical focus:border-red-500 focus:ring-2 focus:ring-red-200 focus:outline-none transition-all"
+                  placeholder="Enter refund reason or notes..."
+                  maxLength={500}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {refundNote.length}/500 characters
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!refundSuccess && (
+            <div className="pt-2">
+              <button
+                onClick={handleProceedRefund}
+                disabled={isRefundLoading || !refundAmount || parseFloat(refundAmount) <= 0}
+                className="w-full inline-flex items-center justify-center px-6 py-3 bg-red-600 text-white rounded-xl text-sm sm:text-base font-bold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+              >
+                {isRefundLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Processing Refund...
+                  </>
+                ) : (
+                  `Proceed with ₹${parseFloat(refundAmount || '0').toLocaleString()} Refund`
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Existing Refunds Display */}
+      {hasRefunds && (
+        <div className="bg-white rounded-lg sm:rounded-xl border border-orange-200 p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+              <HiCurrencyRupee className="w-6 h-6 text-orange-600" />
+            </div>
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+              Refund History ({order.refunds?.length})
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {order.refunds?.map((refund: any, index: number) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-100 group">
+                <div className="flex-1">
+                  <p className="font-semibold text-sm text-gray-900">
+                    ₹{refund.amount.toLocaleString()} 
+                  </p>
+                  <p className="text-xs text-gray-600">{refund.note || 'No note'}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(refund.createdAt).toLocaleDateString('en-IN', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+          
+                {/* ✅ CANCEL BUTTON (Only PENDING/ONHOLD) */}
+                {['PENDING', 'ONHOLD'].includes(refund.status) && (
+                  <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={() => handleCancelRefund(refund)}
+                disabled={isRefundLoading}
+                className="px-3 py-1.5 text-xs bg-red-100 hover:bg-red-200 text-red-800 font-medium rounded-full transition-all flex items-center gap-1 disabled:opacity-50"
+              >
+                <HiX className="w-3 h-3" />
+                Cancel
+              </button>
+            </div>
+          )}
+          
+          {/* Status Badge */}
+          <span className={`px-2 py-1 text-xs font-semibold rounded-full ml-2 ${
+            refund.status === 'SUCCESS' 
+              ? 'bg-green-100 text-green-800' 
+              : refund.status === 'PENDING' 
+              ? 'bg-yellow-100 text-yellow-800 animate-pulse' 
+              : refund.status === 'CANCELLED'
+              ? 'bg-gray-100 text-gray-800' 
+              : 'bg-red-100 text-red-800'
+          }`}>
+            {refund.status}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
       {/* Order Items */}
       <div className="bg-white rounded-lg sm:rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50">

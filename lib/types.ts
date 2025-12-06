@@ -397,3 +397,23 @@ export interface ContactInfo {
   phone: string;
   email: string;
 }
+
+// ============================================
+// refund details type
+// ============================================
+
+// @/lib/types.ts - Add this interface
+export interface Refund {
+  cfRefundId: string;
+  refundId: string;
+  amount: number;
+  currency: string;
+  status: 'SUCCESS' | 'PENDING' | 'CANCELLED' | 'ONHOLD' | 'FAILED';
+  note?: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+}
+
+export interface PopulatedOrderWithRefunds extends PopulatedOrder {
+  refunds?: Refund[];
+}
