@@ -30,6 +30,7 @@ type RefundPreview = {
   totalAmount: number;
   currency: string;
   canFullRefund: boolean;
+  message?: string;
 };
 
 const OrderDetailsPage = () => {
@@ -101,7 +102,7 @@ const fetchRefundPreview = async () => {
       null,
       token
     );
-
+    toast(data?.message);
     setRefundPreview(data);
     setRefundAmount(data.suggestedRefundAmount.toFixed(2));
     setShowRefundPanel(true);
@@ -207,22 +208,24 @@ setTimeout(async () => {
   };
 
   const handleCancelRefund = async (refund: any) => {
-    if (confirm(`Cancel refund ${refund.refundId.slice(-8)}?\nAmount: ₹${refund.amount}`)) {
-      try {
-        setIsRefundLoading(true);
-        await apiRequest(`/api/admin/orders/${id}/refund/${refund.refundId}/cancel`, 
-          'POST', 
-          { remarks: `Admin cancelled via UI` }, 
-          token
-        );
-        toast('Refund cancelled successfully!');
-        await fetchOrderDetails(); // Refresh
-      } catch (err: any) {
-        toast('Cancel failed: ' + (err.message || 'Unknown error'));
-      } finally {
-        setIsRefundLoading(false);
-      }
-    }
+    toast('Prefer Mercant Dasboard for cancellation...!');
+    // if (confirm(`Cancel refund ${refund.refundId.slice(-8)}?\nAmount: ₹${refund.amount}`)) {
+      // try {
+      //   setIsRefundLoading(true);
+      //   //const res= await apiRequest(`/api/admin/orders/${id}/refund/${refund.refundId}/cancel`, 
+      //     // 'POST', 
+      //     // { remarks: `Admin cancelled via UI` }, 
+      //     // token
+      //   // );
+      //   // toast(res?.message);
+
+      //   await fetchOrderDetails(); // Refresh
+      // } catch (err: any) {
+      //   toast('Cancel failed: ' + (err.message || 'Unknown error'));
+      // } finally {
+      //   setIsRefundLoading(false);
+      // }
+    // }
   };
   if (loading) {
     return (
