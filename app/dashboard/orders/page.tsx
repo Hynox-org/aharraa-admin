@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { apiRequest } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { PopulatedOrder, OrderStatus } from '@/lib/types';
-import { 
-  HiEye, 
-  HiShoppingBag, 
-  HiChevronDown, 
-  HiRefresh, 
+import {
+  HiEye,
+  HiShoppingBag,
+  HiChevronDown,
+  HiRefresh,
   HiFilter,
-  HiX 
+  HiX
 } from 'react-icons/hi';
 
 const OrdersPage = () => {
@@ -20,8 +20,7 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [openStatusDropdown, setOpenStatusDropdown] = useState<string | null>(null);
+
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   const fetchOrders = async () => {
@@ -48,14 +47,7 @@ const OrdersPage = () => {
     fetchOrders();
   }, [token]);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => setOpenStatusDropdown(null);
-    if (openStatusDropdown) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [openStatusDropdown]);
+
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -79,63 +71,19 @@ const OrdersPage = () => {
     }
   };
 
-  const baseStatuses: OrderStatus[] = [
-    'pending', 'confirmed', 'readyForDelivery', 'delivered', 'cancelled'
-  ] as OrderStatus[];
+
 
   const filterOptions = ['all', 'pending', 'confirmed', 'readyForDelivery', 'delivered', 'cancelled', 'failed'];
 
-  const getChangeableStatuses = (): OrderStatus[] => {
-    if (user?.role === 'admin') {
-      return baseStatuses;
-    }
-    if (user?.role === 'vendor') {
-      return ['readyForDelivery' as OrderStatus];
-    }
-    return [];
-  };
 
-  const handleStatusChange = async (orderId: string, nextStatus: string) => {
-    if (!token || !nextStatus) return;
 
-    try {
-      setUpdatingId(orderId);
-      
-      const resp = await apiRequest<{
-        message: string;
-        status: OrderStatus;
-        orderId: string;
-      }>(`/api/admin/orders/${orderId}/status`, 'PATCH', { status: nextStatus }, token);
 
-      setOrders(prev =>
-        prev.map((order): PopulatedOrder => {
-          if (order._id === orderId) {
-            return {
-              ...order,
-              status: resp.status as OrderStatus
-            };
-          }
-          return order;
-        })
-      );
-    } catch (err) {
-      console.error('Failed to update status:', err);
-    } finally {
-      setUpdatingId(null);
-      setOpenStatusDropdown(null);
-    }
-  };
-
-  const toggleStatusDropdown = (orderId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpenStatusDropdown(openStatusDropdown === orderId ? null : orderId);
-  };
 
   const filteredOrders = statusFilter === 'all'
     ? orders
     : orders.filter(o => o.status?.toLowerCase() === statusFilter.toLowerCase());
 
-  const changeableStatuses = getChangeableStatuses();
+
 
   // Loading State
   if (loading) {
@@ -253,8 +201,8 @@ const OrdersPage = () => {
             </div>
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No orders found</h3>
             <p className="text-xs sm:text-sm text-gray-500">
-              {statusFilter !== 'all' 
-                ? `No orders with status "${statusFilter}".` 
+              {statusFilter !== 'all'
+                ? `No orders with status "${statusFilter}".`
                 : 'Orders will appear here once customers place them.'}
             </p>
           </div>
@@ -269,7 +217,7 @@ const OrdersPage = () => {
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Order ID</th>
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Customer</th>
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                  {/* <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th> */}
+                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                   <th className="px-4 lg:px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Items</th>
                   <th className="px-4 lg:px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
                 </tr>
@@ -291,49 +239,13 @@ const OrdersPage = () => {
                     <td className="px-4 lg:px-6 py-4 text-xs sm:text-sm font-bold text-gray-900">
                       ₹{order.totalAmount?.toLocaleString() || '0'}
                     </td>
-                    <td className="px-4 lg:px-6 py-4 relative" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative inline-block">
-                        <button
-                          onClick={(e) => changeableStatuses.length > 0 && toggleStatusDropdown(order._id, e)}
-                          disabled={updatingId === order._id}
-                          className={`
-                            flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-full border transition-all duration-200
-                            ${getStatusColor(order.status || '')}
-                            ${updatingId === order._id ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-md cursor-pointer'}
-                          `}
-                        >
-                          <span>{order.status || 'Unknown'}</span>
-                          {changeableStatuses.length > 0 && (
-                            <HiChevronDown 
-                              className={`h-3 w-3 transition-transform ${openStatusDropdown === order._id ? 'rotate-180' : ''}`} 
-                            />
-                          )}
-                        </button>
-
-                        {openStatusDropdown === order._id && changeableStatuses.length > 0 && (
-                          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
-                            <div className="py-1">
-                              {changeableStatuses.map((status) => (
-                                <button
-                                  key={status}
-                                  onClick={() => handleStatusChange(order._id, status)}
-                                  disabled={updatingId === order._id}
-                                  className={`
-                                    w-full text-left px-3 py-2 text-xs font-medium transition-colors
-                                    ${status.toLowerCase() === (order.status || '').toLowerCase() 
-                                      ? 'bg-[#3CB371]/10 text-[#3CB371] border-l-4 border-[#3CB371]' 
-                                      : 'text-gray-700 hover:bg-gray-50'
-                                    }
-                                    ${updatingId === order._id ? 'opacity-70 cursor-not-allowed' : ''}
-                                  `}
-                                >
-                                  {status}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                    <td className="px-4 lg:px-6 py-4 relative">
+                      <span className={`
+                        inline-flex items-center px-2.5 py-1.5 text-xs font-semibold rounded-full border
+                        ${getStatusColor(order.status || '')}
+                      `}>
+                        {order.status || 'Unknown'}
+                      </span>
                     </td>
                     <td className="px-4 lg:px-6 py-4 text-xs sm:text-sm text-gray-600">
                       {order.items?.length || 0} items
@@ -364,41 +276,16 @@ const OrdersPage = () => {
                     </p>
                     <p className="text-xs text-gray-600 mt-0.5">{order.user?.name || 'N/A'}</p>
                   </div>
-                  <div className="relative" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      // onClick={(e) => changeableStatuses.length > 0 && toggleStatusDropdown(order._id, e)}
-                      disabled={updatingId === order._id}
-                      className={`
-                        flex items-center gap-1 px-2 py-1 text-[10px] font-semibold rounded-full border
-                        ${getStatusColor(order.status || '')}
-                        ${updatingId === order._id ? 'opacity-70' : ''}
-                      `}
-                    >
-                      <span>{order.status}</span>
-                      {changeableStatuses.length > 0 && <HiChevronDown className="h-3 w-3" />}
-                    </button>
-
-                    {openStatusDropdown === order._id && changeableStatuses.length > 0 && (
-                      <div className="absolute top-full right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-50">
-                        <div className="py-1">
-                          {changeableStatuses.map((status) => (
-                            <button
-                              key={status}
-                              onClick={() => handleStatusChange(order._id, status)}
-                              className={`
-                                w-full text-left px-3 py-2 text-xs font-medium
-                                ${status === order.status ? 'bg-[#3CB371]/10 text-[#3CB371]' : 'text-gray-700 hover:bg-gray-50'}
-                              `}
-                            >
-                              {status}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                  <div className="relative">
+                    <span className={`
+                      inline-flex items-center px-2 py-1 text-[10px] font-semibold rounded-full border
+                      ${getStatusColor(order.status || '')}
+                    `}>
+                      {order.status}
+                    </span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div>
